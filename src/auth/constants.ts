@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
 export const jwtConstants = {
-  secret: process.env.JWT_SECRET,
+  accessTokenSecret: process.env.JWT_ACCESS_SECRET,
+  refreshTokenSecret: process.env.JWT_REFRESH_SECRET,
 };

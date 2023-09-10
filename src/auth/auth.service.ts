@@ -4,6 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
 import { User } from 'src/user/entities/user.entity';
 import { LoginPayload } from './models/LoginPayload';
+import { RefreshTokenPayload } from './models/RefreshTokenPayload';
+import { jwtConstants } from './constants';
 
 @Injectable()
 export class AuthService {
@@ -24,12 +26,42 @@ export class AuthService {
   }
 
   async login(data: LoginPayload) {
-    const { id, name, email } = data;
+    const { userId, name, email } = data;
+    const payload = { name, email, sub: userId };
 
-    const payload = { name, email, sub: id };
+    const accessToken = this.jwtService.sign(payload, {
+      secret: jwtConstants.accessTokenSecret,
+      expiresIn: '1h',
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: jwtConstants.refreshTokenSecret,
+      expiresIn: '7d',
+    });
 
     return {
-      access_token: this.jwtService.sign(payload),
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  async refreshToken(data: RefreshTokenPayload) {
+    const { email, name, userId } = data;
+    const payload = { sub: userId, name, email };
+
+    const accessToken = this.jwtService.sign(payload, {
+      secret: jwtConstants.accessTokenSecret,
+      expiresIn: '1h',
+    });
+
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: jwtConstants.refreshTokenSecret,
+      expiresIn: '7d',
+    });
+
+    return {
+      accessToken,
+      refreshToken,
     };
   }
 }
