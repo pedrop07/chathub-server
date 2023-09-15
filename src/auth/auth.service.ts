@@ -3,8 +3,8 @@ import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
 import { User } from 'src/user/entities/user.entity';
-import { LoginPayload } from './models/LoginPayload';
-import { RefreshTokenPayload } from './models/RefreshTokenPayload';
+import { LoginPayload } from './interfaces/login-payload.interface';
+import { RefreshTokenPayload } from './interfaces/refresh-token-payload.interface';
 import { jwtConstants } from './constants';
 
 @Injectable()

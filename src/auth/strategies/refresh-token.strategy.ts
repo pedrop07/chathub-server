@@ -2,7 +2,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Injectable } from '@nestjs/common';
 import { jwtConstants } from '../constants';
-import { JwtValidatePayload } from '../models/JwtValidatePayload';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { Request as RequestType } from 'express';
 
 @Injectable()
@@ -22,14 +22,13 @@ export class RefreshTokenStrategy extends PassportStrategy(
   }
 
   private static extractJWTFromCookie(req: RequestType): string | null {
-    console.log(req.cookies);
     if (req.cookies && req.cookies.refreshToken) {
       return req.cookies.refreshToken;
     }
     return null;
   }
 
-  validate(payload: JwtValidatePayload) {
+  validate(payload: JwtPayload) {
     return {
       userId: payload.sub,
       name: payload.name,
