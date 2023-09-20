@@ -1,28 +1,30 @@
 import 'dotenv/config';
+
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
-import { User } from './user/entities/user.entity';
+import { ChatsModule } from './chats/chats.module';
+
+import DatabaseConfig from './config/database.config';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: process.env.MYSQL_PASSWORD,
-      database: 'teste',
-      entities: [User],
-      // synchronize: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [DatabaseConfig],
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) =>
+        configService.get('database'),
+      inject: [ConfigService],
     }),
     AuthModule,
     UserModule,
+    ChatsModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
