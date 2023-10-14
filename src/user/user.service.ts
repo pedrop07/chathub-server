@@ -1,9 +1,13 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { hash } from 'bcrypt';
 import { User } from './entities/user.entity';
-import { RegisterUserDto } from './dto/register-user.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
 
 @Injectable()
 export class UserService {
@@ -12,34 +16,120 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async findByEmail(email: string): Promise<User | undefined> {
+  async findByIdOrFail(userId: string): Promise<User> {
     try {
-      const user = await this.userRepository.findOneByOrFail({
-        email,
+      const user = await this.userRepository.findOneOrFail({
+        where: {
+          id: userId,
+        },
+        relations: {
+          chats: {
+            owner: true,
+          },
+        },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          created_at: true,
+          chats: {
+            id: true,
+            title: true,
+            description: true,
+            created_at: true,
+            owner: {
+              id: true,
+              username: true,
+              email: true,
+            },
+          },
+        },
       });
+
       return user;
     } catch (error) {
-      throw new UnauthorizedException('Invalid credentials.');
+      throw new NotFoundException('User not found');
     }
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find();
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: {
+        email,
+      },
+    });
+    return user;
+  }
+
+  async findByUsernameOrFail(username: string): Promise<User> {
+    try {
+      const user = await this.userRepository.findOneOrFail({
+        where: {
+          username,
+        },
+        relations: {
+          chats: {
+            owner: true,
+            members: true,
+          },
+        },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          created_at: true,
+          chats: {
+            id: true,
+            title: true,
+            description: true,
+            created_at: true,
+            owner: {
+              id: true,
+              username: true,
+              email: true,
+            },
+            members: {
+              username: true,
+            },
+          },
+        },
+      });
+      return user;
+    } catch (error) {
+      throw new NotFoundException('User not found');
+    }
   }
 
   async register(registerUserDto: RegisterUserDto): Promise<Partial<User>> {
-    const createdUser = this.userRepository.create({
+    const userWithSameEmail = await this.userRepository.findOneBy({
+      email: registerUserDto.email,
+    });
+    const userWithSameUsername = await this.userRepository.findOneBy({
+      username: registerUserDto.username,
+    });
+
+    if (userWithSameEmail) {
+      throw new BadRequestException('A user with this email already exists.');
+    }
+
+    if (userWithSameUsername) {
+      throw new BadRequestException(
+        'A user with this username already exists.',
+      );
+    }
+
+    const newUser = this.userRepository.create({
       ...registerUserDto,
       password_hash: await hash(registerUserDto.password, 10),
     });
 
-    const user = await this.userRepository.save(createdUser);
+    await this.userRepository.save(newUser);
 
-    const { id, name, email, created_at } = user;
+    const { id, username, email, created_at } = newUser;
 
     return {
       id,
-      name,
+      username,
       email,
       created_at,
     };

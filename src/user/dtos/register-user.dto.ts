@@ -4,12 +4,18 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  Matches,
 } from 'class-validator';
 
 export class RegisterUserDto {
   @IsNotEmpty()
   @IsString()
-  name: string;
+  @Matches(/^[a-zA-Z0-9_]*$/, {
+    message: 'O campo username deve conter apenas letras números e _.',
+  })
+  @MinLength(3)
+  @MaxLength(50)
+  username: string;
 
   @IsNotEmpty()
   @IsEmail()
