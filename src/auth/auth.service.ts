@@ -16,25 +16,29 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<User> {
     const user = await this.userService.findByEmail(email);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
     const passwordMatches = await compare(password, user.password_hash);
 
-    if (user && passwordMatches) {
+    if (passwordMatches) {
       return user;
     }
 
     throw new UnauthorizedException('Invalid credentials.');
   }
 
-  async login(data: LoginPayload) {
-    const { userId, name, email } = data;
-    const payload = { name, email, sub: userId };
+  async login({ userId, username, email }: LoginPayload) {
+    const jwtPayload = { username, email, sub: userId };
 
-    const accessToken = this.jwtService.sign(payload, {
+    const accessToken = this.jwtService.sign(jwtPayload, {
       secret: jwtConstants.accessTokenSecret,
       expiresIn: '1h',
     });
 
-    const refreshToken = this.jwtService.sign(payload, {
+    const refreshToken = this.jwtService.sign(jwtPayload, {
       secret: jwtConstants.refreshTokenSecret,
       expiresIn: '7d',
     });
@@ -45,16 +49,17 @@ export class AuthService {
     };
   }
 
-  async refreshToken(data: RefreshTokenPayload) {
-    const { email, name, userId } = data;
-    const payload = { sub: userId, name, email };
+  async refreshToken({ userId, username, email }: RefreshTokenPayload) {
+    await this.userService.findByIdOrFail(userId);
 
-    const accessToken = this.jwtService.sign(payload, {
+    const jwtPayload = { sub: userId, username, email };
+
+    const accessToken = this.jwtService.sign(jwtPayload, {
       secret: jwtConstants.accessTokenSecret,
       expiresIn: '1h',
     });
 
-    const refreshToken = this.jwtService.sign(payload, {
+    const refreshToken = this.jwtService.sign(jwtPayload, {
       secret: jwtConstants.refreshTokenSecret,
       expiresIn: '7d',
     });
